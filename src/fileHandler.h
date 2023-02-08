@@ -33,9 +33,13 @@ namespace tdms
         void WriteRawData(tdms::TDMSDataStruct *tdmsData);
         void WriteMetaProperties(std::unordered_map<std::string,
                                                     tdms::Property> &properties);
+        void RewriteNextSegmentOffsetValue(tdms::TDMSDataStruct *tdmsData);
+        //TODO Change  Next Segment Offset Value
 
     private:
         FILE *file;
+        long int nextSegmentOffsetPosition;
+        long int nextSegmentOffsetPositionOffset;
     };
 
 } // tdms

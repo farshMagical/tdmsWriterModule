@@ -17,7 +17,8 @@ namespace tdms
     void TDMSFileHandler::OpenFile()
     {
         file = fopen("kek.tdms", "wb");
-        if(!file){
+        if (!file)
+        {
             std::cout << "kek.tdms can't be open" << std::endl;
             throw;
         }
@@ -52,6 +53,15 @@ namespace tdms
     {
         WriteLeadIn(tdmsData);
         WriteRawData(tdmsData);
+        RewriteNextSegmentOffsetValue(tdmsData);
+    }
+
+    void TDMSFileHandler::RewriteNextSegmentOffsetValue(tdms::TDMSDataStruct *tdmsData)
+    {
+        fseek(file, nextSegmentOffsetPosition, SEEK_SET);
+        fwrite(&tdmsData->leadIn.nextSegmentOffset + nextSegmentOffsetPositionOffset,
+               8, 1, file);
+        fseek(file, 0, SEEK_END);
     }
 
     void TDMSFileHandler::WriteLeadIn(tdms::TDMSDataStruct *tdmsData)
@@ -59,6 +69,7 @@ namespace tdms
         fwrite(tdmsData->leadIn.tag, 1, 4, file);
         fwrite(&tdmsData->leadIn.tocMask, 4, 1, file);
         fwrite(&tdmsData->leadIn.version, 4, 1, file);
+        nextSegmentOffsetPosition = ftell(file); // save position of nextSegmentOffset()
         fwrite(&tdmsData->leadIn.nextSegmentOffset, 8, 1, file);
         fwrite(&tdmsData->leadIn.rawDataOffset, 8, 1, file);
     }
@@ -115,6 +126,7 @@ namespace tdms
 
     void TDMSFileHandler::WriteRawData(tdms::TDMSDataStruct *tdmsData)
     {
+        uint64_t bytes = 0;
         for (auto &m : tdmsData->metaData.channelObjects)
         {
             switch (*m->GetDataTypeOfRaw())
@@ -124,31 +136,36 @@ namespace tdms
                        1,
                        *m->GetNumberOfRawDataValue(),
                        file);
+                bytes += 1 * *m->GetNumberOfRawDataValue();
                 break;
 
             case (tdsTypeI8):
-                fwrite(m->GetDataObject().GetDataI32(),
+                fwrite(m->GetDataObject().GetDataI8(),
                        1,
                        *m->GetNumberOfRawDataValue(),
                        file);
+                bytes += 1 * *m->GetNumberOfRawDataValue();
                 break;
             case (tdsTypeU8):
-                fwrite(m->GetDataObject().GetDataI32(),
+                fwrite(m->GetDataObject().GetDataU8(),
                        1,
                        *m->GetNumberOfRawDataValue(),
                        file);
+                bytes += 1 * *m->GetNumberOfRawDataValue();
                 break;
             case (tdsTypeI16):
-                fwrite(m->GetDataObject().GetDataI32(),
+                fwrite(m->GetDataObject().GetDataI16(),
                        2,
                        *m->GetNumberOfRawDataValue(),
                        file);
+                bytes += 2 * *m->GetNumberOfRawDataValue();
                 break;
             case (tdsTypeU16):
-                fwrite(m->GetDataObject().GetDataI32(),
+                fwrite(m->GetDataObject().GetDataI16(),
                        2,
                        *m->GetNumberOfRawDataValue(),
                        file);
+                bytes += 2 * *m->GetNumberOfRawDataValue();
                 break;
 
             case (tdsTypeI32):
@@ -156,42 +173,49 @@ namespace tdms
                        4,
                        *m->GetNumberOfRawDataValue(),
                        file);
+                bytes += 4 * *m->GetNumberOfRawDataValue();
                 break;
             case (tdsTypeU32):
                 fwrite(m->GetDataObject().GetDataU32(),
                        4,
                        *m->GetNumberOfRawDataValue(),
                        file);
+                bytes += 4 * *m->GetNumberOfRawDataValue();
                 break;
             case (tdsTypeI64):
                 fwrite(m->GetDataObject().GetDataI64(),
                        8,
                        *m->GetNumberOfRawDataValue(),
                        file);
+                bytes += 8 * *m->GetNumberOfRawDataValue();
                 break;
             case (tdsTypeU64):
                 fwrite(m->GetDataObject().GetDataU64(),
                        8,
                        *m->GetNumberOfRawDataValue(),
                        file);
+                bytes += 8 * *m->GetNumberOfRawDataValue();
                 break;
             case (tdsTypeString):
                 fwrite(m->GetDataObject().GetDataChar(),
                        1,
                        *m->GetNumberOfRawDataValue(),
                        file);
+                bytes += *m->GetNumberOfRawDataValue();
                 break;
             case (tdsTypeSingleFloat):
                 fwrite(m->GetDataObject().GetDataFloat(),
                        sizeof(float),
                        *m->GetNumberOfRawDataValue(),
                        file);
+                bytes += sizeof(float) * *m->GetNumberOfRawDataValue();
                 break;
             case (tdsTypeDoubleFloat):
                 fwrite(m->GetDataObject().GetDataDouble(),
                        sizeof(double),
                        *m->GetNumberOfRawDataValue(),
                        file);
+                bytes += sizeof(double) * *m->GetNumberOfRawDataValue();
                 break;
                 // case (tdsTypeTimeStamp): // TODO
                 //     fwrite(m->GetDataObject().GetDataTimestamp(),
@@ -200,6 +224,7 @@ namespace tdms
                 //            file);
             }
         }
+        nextSegmentOffsetPositionOffset += bytes;
     }
 
     void TDMSFileHandler::WriteMetaProperties(std::unordered_map<std::string,

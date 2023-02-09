@@ -16,6 +16,8 @@ namespace tdms
         ~TDMSFileHandler();
         void WriteMetaDataOnly(tdms::TDMSDataStruct *tdmsData);
         void WriteChannelsWithRawData(tdms::TDMSDataStruct *tdmsData);
+
+        void PreparationToRawDataOnly(tdms::TDMSDataStruct *tdmsData);
         void WriteRawDataOnly(tdms::TDMSDataStruct *tdmsData);
 
     private:

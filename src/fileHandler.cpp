@@ -49,18 +49,26 @@ namespace tdms
         WriteRawData(tdmsData);
     }
 
+    void TDMSFileHandler::PreparationToRawDataOnly(tdms::TDMSDataStruct *tdmsData)
+    {
+        // tdmsData->PrepareForRawDataOnly();
+        WriteLeadIn(tdmsData);
+        fwrite(&tdmsData->metaData.numberOfOjects, 4, 1, file);
+        WriteMetaChannels(tdmsData);
+    }
+
     void TDMSFileHandler::WriteRawDataOnly(tdms::TDMSDataStruct *tdmsData)
     {
-        WriteLeadIn(tdmsData);
-        WriteRawData(tdmsData);
         RewriteNextSegmentOffsetValue(tdmsData);
+        WriteRawData(tdmsData);
     }
 
     void TDMSFileHandler::RewriteNextSegmentOffsetValue(tdms::TDMSDataStruct *tdmsData)
     {
         fseek(file, nextSegmentOffsetPosition, SEEK_SET);
-        fwrite(&tdmsData->leadIn.nextSegmentOffset + nextSegmentOffsetPositionOffset,
-               8, 1, file);
+        tdmsData->leadIn.nextSegmentOffset += nextSegmentOffsetPositionOffset;
+        fwrite(&tdmsData->leadIn.nextSegmentOffset, 8, 1, file);
+        tdmsData->leadIn.nextSegmentOffset -= nextSegmentOffsetPositionOffset;
         fseek(file, 0, SEEK_END);
     }
 
@@ -70,6 +78,7 @@ namespace tdms
         fwrite(&tdmsData->leadIn.tocMask, 4, 1, file);
         fwrite(&tdmsData->leadIn.version, 4, 1, file);
         nextSegmentOffsetPosition = ftell(file); // save position of nextSegmentOffset()
+        nextSegmentOffsetPositionOffset = 0;
         fwrite(&tdmsData->leadIn.nextSegmentOffset, 8, 1, file);
         fwrite(&tdmsData->leadIn.rawDataOffset, 8, 1, file);
     }

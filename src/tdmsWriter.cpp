@@ -47,7 +47,7 @@ namespace tdms
 
     void TDMSWriter::ConfigureToRawData()
     {
-        tdmsStruct.PrepareForRawDataOnly();
+        fileHandlerPtr->PreparationToRawDataOnly(&tdmsStruct);
     }
 
     void TDMSWriter::GenerateRawData()
